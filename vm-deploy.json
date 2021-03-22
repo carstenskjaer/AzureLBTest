@@ -177,6 +177,19 @@
               "destinationAddressPrefix": "*",
               "destinationPortRange": "10000"
             }
+          },
+          {
+            "name": "ping",
+            "properties": {
+              "priority": 102,
+              "protocol": "ICMP",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "Internet",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "*"
+            }
           }
         ]
       }
