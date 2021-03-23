@@ -48,7 +48,7 @@ for i in range(iterations):
 
         payload = recv_bytes(sock, payloadSize)
 
-        print(f'send+recv took  {(time.time() - startTime)*1000.0*1000.0:.2f}us')
+        print(f'send+recv to {hostname} took  {(time.time() - startTime)*1000.0*1000.0:.2f}us')
     except socket.error as e:
         print(f'exception {e}')
         print('closing and reopening socket')

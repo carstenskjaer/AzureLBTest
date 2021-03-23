@@ -12,7 +12,7 @@ def recv_bytes(s, bytecount):
         bytecount -= nbytes
     return buf
 
-hostName = socket.gethostname()
+hostname = socket.gethostname()
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -47,7 +47,7 @@ while True:
             payload = recv_bytes(connection, payloadSize)
 
             # Send response
-            response = struct.pack('4si64si', bytes('efgh', 'ascii'), 0, bytes(hostName, 'ascii'), payloadSize)
+            response = struct.pack('4si64si', bytes('efgh', 'ascii'), 0, bytes(hostname, 'ascii'), payloadSize)
             response += payload
             connection.sendall(response)
 
