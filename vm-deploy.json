@@ -162,7 +162,7 @@
               "sourceAddressPrefix": "*",
               "sourcePortRange": "*",
               "destinationAddressPrefix": "*",
-              "destinationPortRange": " "
+              "destinationPortRange": "*"
             }
           },
           {
