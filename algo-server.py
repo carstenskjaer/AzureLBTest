@@ -19,7 +19,7 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Bind the socket to the port
 server_address = ('', 10000)
-print(f'Running on {hostName} - binding to {server_address}')
+print(f'Running on {hostname} - binding to {server_address}')
 sock.bind(server_address)
 
 # Listen for incoming connections
