@@ -2,13 +2,6 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "vmName": {
-      "type": "string",
-      "defaultValue": "simpleLinuxVM",
-      "metadata": {
-        "description": "The name of you Virtual Machine."
-      }
-    },
     "adminUsername": {
       "type": "string",
       "defaultValue": "azureuser",
@@ -41,17 +34,6 @@
         "description": "Unique DNS Name for the Public IP used to access the Virtual Machine."
       }
     },
-    "ubuntuOSVersion": {
-      "type": "string",
-      "defaultValue": "18.04-LTS",
-      "allowedValues": [
-        "16.04.0-LTS",
-        "18.04-LTS"
-      ],
-      "metadata": {
-        "description": "The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version."
-      }
-    },
     "location": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
@@ -66,42 +48,33 @@
         "description": "The size of the VM"
       }
     },
-    "virtualNetworkName": {
-      "type": "string",
-      "defaultValue": "vNet",
-      "metadata": {
-        "description": "Name of the VNET"
-      }
-    },
-    "subnetName": {
-      "type": "string",
-      "defaultValue": "Subnet",
-      "metadata": {
-        "description": "Name of the subnet in the virtual network"
-      }
-    },
-    "networkSecurityGroupName": {
-      "type": "string",
-      "defaultValue": "SecGroupNet",
-      "metadata": {
-        "description": "Name of the Network Security Group"
-      }
-    },
     "serverScriptLocation": {
       "type": "string",
       "metadata": {
         "description": "server script location"
       },
       "defaultValue": "https://raw.githubusercontent.com/carstenskjaer/AzureLBTest/main/algo-server.py"
+    },
+    "vmCount": {
+      "type": "int",
+      "defaultValue": 2,
+      "metadata": {
+        "description": "Number of VM instances to create"
+      }
     }
   },
   "variables": {
-    "publicIpAddressName": "[concat(parameters('vmName'), 'PublicIP' )]",
-    "networkInterfaceName": "[concat(parameters('vmName'),'NetInt')]",
-    "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), parameters('subnetName'))]",
+    "vmName": "lbTestVM",
+    "publicIpAddressName": "[concat(variables('vmName'), 'PublicIP' )]",
+    "networkInterfaceName": "[concat(variables('vmName'),'NetInt')]",
+    "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]",
     "osDiskType": "Standard_LRS",
     "subnetAddressPrefix": "10.1.0.0/24",
     "addressPrefix": "10.1.0.0/16",
+    "virtualNetworkName" : "vNet",
+    "subnetName": "Subnet",
+    "networkSecurityGroupName": "SecGroupNet",
+    "ubuntuOSVersion": "18.04-LTS",
     "linuxConfiguration": {
       "disablePasswordAuthentication": true,
       "ssh": {
@@ -118,13 +91,17 @@
     {
       "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2020-06-01",
-      "name": "[variables('networkInterfaceName')]",
+      "name": "[concat(variables('networkInterfaceName'), copyIndex(0))]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups/', parameters('networkSecurityGroupName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]",
-        "[resourceId('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressName'))]"
+        "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+        "[resourceId('Microsoft.Network/publicIpAddresses/', concat(variables('publicIpAddressName'),copyIndex(0)))]"
       ],
+      "copy": {
+        "name": "niccopy",
+        "count": "[parameters('vmCount')]"
+      },
       "properties": {
         "ipConfigurations": [
           {
@@ -135,20 +112,20 @@
               },
               "privateIPAllocationMethod": "Dynamic",
               "publicIpAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',concat(variables('publicIPAddressName'), copyIndex(0)))]"
               }
             }
           }
         ],
         "networkSecurityGroup": {
-          "id": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('networkSecurityGroupName'))]"
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('networkSecurityGroupName'))]"
         }
       }
     },
     {
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2020-06-01",
-      "name": "[parameters('networkSecurityGroupName')]",
+      "name": "[variables('networkSecurityGroupName')]",
       "location": "[parameters('location')]",
       "properties": {
         "securityRules": [
@@ -197,7 +174,7 @@
     {
       "type": "Microsoft.Network/virtualNetworks",
       "apiVersion": "2020-06-01",
-      "name": "[parameters('virtualNetworkName')]",
+      "name": "[variables('virtualNetworkName')]",
       "location": "[parameters('location')]",
       "properties": {
         "addressSpace": {
@@ -207,7 +184,7 @@
         },
         "subnets": [
           {
-            "name": "[parameters('subnetName')]",
+            "name": "[variables('subnetName')]",
             "properties": {
               "addressPrefix": "[variables('subnetAddressPrefix')]",
               "privateEndpointNetworkPolicies": "Enabled",
@@ -220,8 +197,12 @@
     {
       "type": "Microsoft.Network/publicIpAddresses",
       "apiVersion": "2020-06-01",
-      "name": "[variables('publicIpAddressName')]",
+      "name": "[concat(variables('publicIpAddressName'), copyIndex(0))]",
       "location": "[parameters('location')]",
+      "copy": {
+        "name": "publicipcopy",
+        "count": "[parameters('vmCount')]"
+      },
       "sku": {
         "name": "Basic",
         "tier": "Regional"
@@ -230,7 +211,7 @@
         "publicIpAllocationMethod": "Dynamic",
         "publicIPAddressVersion": "IPv4",
         "dnsSettings": {
-          "domainNameLabel": "[parameters('dnsLabelPrefix')]"
+          "domainNameLabel": "[concat(parameters('dnsLabelPrefix'), copyIndex(0))]"
         },
         "idleTimeoutInMinutes": 4
       }
@@ -238,11 +219,15 @@
     {
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2020-06-01",
-      "name": "[parameters('vmName')]",
+      "name": "[concat(variables('vmName'),copyIndex(0))]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkInterfaces/', variables('networkInterfaceName'))]"
+        "[resourceId('Microsoft.Network/networkInterfaces/', concat(variables('networkInterfaceName'), copyIndex()))]"
       ],
+      "copy": {
+        "name": "vmcopy",
+        "count": "[parameters('vmCount')]"
+      },
       "properties": {
         "hardwareProfile": {
           "vmSize": "[parameters('VmSize')]"
@@ -257,19 +242,19 @@
           "imageReference": {
             "publisher": "Canonical",
             "offer": "UbuntuServer",
-            "sku": "[parameters('ubuntuOSVersion')]",
+            "sku": "[variables('ubuntuOSVersion')]",
             "version": "latest"
           }
         },
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('networkInterfaceName'), copyIndex()))]"
             }
           ]
         },
         "osProfile": {
-          "computerName": "[parameters('vmName')]",
+          "computerName": "[concat(variables('vmName'), copyIndex())]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPasswordOrKey')]",
           "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
@@ -278,12 +263,16 @@
     },
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(parameters('vmName'), '/script-extension' )]",
+      "name": "[concat(variables('vmName'), copyIndex(), '/script-extension' )]",
       "apiVersion": "2020-12-01",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines/', parameters('vmName'))]"
+        "[resourceId('Microsoft.Compute/virtualMachines/', concat(variables('vmName'), copyIndex()))]"
       ],
+      "copy": {
+        "name": "extensionscopy",
+        "count": "[parameters('vmCount')]"
+      },
       "properties": {
         "publisher": "Microsoft.Azure.Extensions",
         "type": "CustomScript",
@@ -305,13 +294,14 @@
       "type": "string",
       "value": "[parameters('adminUsername')]"
     },
-    "hostname": {
-      "type": "string",
-      "value": "[reference(variables('publicIPAddressName')).dnsSettings.fqdn]"
-    },
-    "sshCommand": {
-      "type": "string",
-      "value": "[concat('ssh ', parameters('adminUsername'), '@', reference(variables('publicIPAddressName')).dnsSettings.fqdn)]"
+    "ssh": {
+      "type": "array",
+      "copy": {
+        "count": "[parameters('vmCount')]",
+        "input": {
+          "value": "[concat('ssh ', parameters('adminUsername'), '@', reference(resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIPAddressName'), copyIndex(0)))).IpAddress)]"
+        }
+      }
     }
   }
 }

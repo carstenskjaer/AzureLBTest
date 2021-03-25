@@ -1,0 +1,1 @@
+az deployment group create --name lbtest --resource-group lbtest --template-file /mnt/c/dev/AzureLBTest/vm-deploy.json
