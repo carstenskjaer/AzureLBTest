@@ -3,6 +3,8 @@ import sys
 import time
 import struct
 
+hostname = socket.gethostname()
+
 def recv_bytes(s, bytecount):
     buf = bytearray(bytecount)
     view = memoryview(buf)
@@ -12,17 +14,27 @@ def recv_bytes(s, bytecount):
         bytecount -= nbytes
     return buf
 
+def client_connect(sock, server_address):
+    print(f'Client on {hostname} connecting to {server_address}')
+    while(True):
+        try:
+            sock.connect(server_address)
+            return
+        except socket.error as e:
+            print(f'exception {e} when trying to connect')
+            time.sleep(0.1)
+
+
 def client(server):
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(1) # Timeout to 1 s
 
     # Connect the socket to the port where the server is listening
     server_address = (server, 10000)
-    hostname = socket.gethostname()
-    print(f'Client on {hostname} connecting to {server_address}')
-    sock.connect(server_address)
+    client_connect(sock, server_address)
 
-    iterations = 10
+    iterations = 10000000
 
     totalStartTime = time.time()
 
@@ -56,7 +68,7 @@ def client(server):
             print('closing and reopening socket')
             sock.close()
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect(server_address)
+            client_connect(sock, server_address)
         except:
             print(f'unknown exception')
             raise

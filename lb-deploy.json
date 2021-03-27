@@ -393,7 +393,7 @@
       "copy": {
         "count": "[parameters('vmCount')]",
         "input": {
-          "value": "[concat('ssh ', parameters('adminUsername'), '@', reference(resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('publicIpVMAddressName'), copyIndex()))).IpAddress)]"
+          "value": "[concat('ssh ', parameters('adminUsername'), '@', reference(resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('publicIpVMAddressName'), copyIndex()))).dnsSettings.fqdn)]"
         }
       }
     },
